@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<meta charset="utf-8" /> 
+  	<title>iSpecies</title>
+  	
+    <style type="text/css">
+      body { margin: 20px; font-family:sans-serif;}
+      input[type="text"] {
+    		font-size:14px;
+	  }
+	  button {font-size:14px;}
+    </style>
+    
+	<script src="latin.js"></script>    
+    
+    <!-- jquery -->
+    <script src="jquery-1.11.2.min.js"></script>
+    
+    <!-- leaflet -->
+	<link rel="stylesheet" href="leaflet-0.7.3/leaflet.css" />
+	<script src="leaflet-0.7.3/leaflet.js"></script>
+	
+	<!-- phylogeny -->
+	<script src="jquery-svgpan.js"></script>
+	<script src="treelib.js"></script>
+	
+	<script>
+		var map;
+		var geojson = null;
+	
+		function onEachFeature(feature, layer) {
+			// does this feature have a property named popupContent?
+			if (feature.properties && feature.properties.popupContent) {
+				layer.bindPopup(feature.properties.popupContent);
+			}
+		}	
+    	    	
+    	function create_map() {
+			map = new L.Map('map');
+
+			// create the tile layer with correct attribution
+			var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+			var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+			var osm = new L.TileLayer(osmUrl, {minZoom: 1, maxZoom: 12, attribution: osmAttrib});		
+
+			map.setView(new L.LatLng(0, 0),4);
+			map.addLayer(osm);		
+		}
+		
+		function add_data(data) {
+		    if (geojson) {
+		    	map.removeLayer(geojson);
+		    }
+			
+			geojson = L.geoJson(data, { 
+			style: function (feature) {
+				return feature.properties && feature.properties.style;
+			},
+			onEachFeature: onEachFeature,
+			}).addTo(map);
+			
+			if (data.type) {
+				if (data.type == 'Polygon') {
+				    for (var i in data.coordinates) {
+				      minx = 180;
+				      miny = 90;
+				      maxx = -180;
+				      maxy = -90;
+				      
+				      for (var j in data.coordinates[i]) {
+				      	minx = Math.min(minx, data.coordinates[i][j][0]);
+				      	miny = Math.min(miny, data.coordinates[i][j][1]);
+				      	maxx = Math.max(maxx, data.coordinates[i][j][0]);
+				      	maxy = Math.max(maxy, data.coordinates[i][j][1]);
+				      }
+				    }
+				      	
+					bounds = L.latLngBounds(L.latLng(miny,minx), L.latLng(maxy,maxx));
+					map.fitBounds(bounds);
+				}
+				if (data.type == 'MultiPoint') {
+					minx = 180;
+				    miny = 90;
+				    maxx = -180;
+				    maxy = -90;				
+				    for (var i in data.coordinates) {
+				      	minx = Math.min(minx, data.coordinates[i][0]);
+				      	miny = Math.min(miny, data.coordinates[i][1]);
+				      	maxx = Math.max(maxx, data.coordinates[i][0]);
+				      	maxy = Math.max(maxy, data.coordinates[i][1]);
+				    }
+				      	
+					bounds = L.latLngBounds(L.latLng(miny,minx), L.latLng(maxy,maxx));
+					map.fitBounds(bounds);
+				}
+				
+			}
+		    					
+		}
+		
+
+		</script>
+    
+    <script>
+    
+    // http://stackoverflow.com/a/11407464
+	$(document).keypress(function(event){
+
+		var keycode = (event.keyCode ? event.keyCode : event.which);
+		if(keycode == '13'){
+			$('#find').click();   
+		}
+
+	});    
+    
+    //http://stackoverflow.com/a/25359264
+	$.urlParam = function(name){
+		var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+		if (results==null){
+		   return null;
+		}
+		else{
+		   return results[1] || 0;
+		}
+	}    
+	
+    // http://stackoverflow.com/a/16976927
+	function ObjectLength_Modern( object ) {
+		return Object.keys(object).length;
+	}
+
+	function ObjectLength_Legacy( object ) {
+		var length = 0;
+		for( var key in object ) {
+			if( object.hasOwnProperty(key) ) {
+				++length;
+			}
+		}
+		return length;
+	}
+
+	var ObjectLength =
+		Object.keys ? ObjectLength_Modern : ObjectLength_Legacy; 
+		
+	//---------
+	
+	
+	//----------
+		
+	function eol_images(eol) {
+		$.getJSON('http://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
+			function(data){
+				var html = '';
+				for (var i in data.dataObjects) {
+					if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
+						html += '<img style="padding:5px;" src="' + data.dataObjects[i].eolThumbnailURL + '" />';
+					}
+				}
+
+			/*
+				for (var i in data.dataObjects) {
+					if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/Text") {
+						html += '<p style="font-size:10px;">' + data.dataObjects[i].description + '</p>';
+					}
+				}
+				*/
+				
+				$("#results").html(html);
+				
+				$('#images_details').html('Data from <a href="http://eol.org/pages/' + eol + '" target="_new">EOL</a>');
+				
+			 }
+				
+			);
+		
+	
+	}
+	
+	//----------
+	
+	
+	
+function showtree(newick)
+{
+    var t = new Tree();
+	t.Parse(newick);
+
+	if (t.error != 0)
+	{
+		//document.getElementById('message').innerHTML='Error parsing tree';
+	}
+	else
+	{
+		//document.getElementById('message').innerHTML='Parsed OK';
+				
+		t.ComputeWeights(t.root);
+		
+		var td = td = new RectangleTreeDrawer();
+		
+		// clear existing diagram, if any
+		
+		var svg = document.getElementById('svg');
+		while (svg.hasChildNodes()) 
+		{
+			svg.removeChild(svg.lastChild);
+		}
+		
+		
+		
+		var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+		g.setAttribute('id','viewport');
+		svg.appendChild(g);
+		
+		
+		td.Init(t, {svg_id: 'viewport', width:200, height:400, fontHeight:10, root_length:0.1} );
+		
+		td.CalcCoordinates();
+		td.Draw();
+		
+		// font size
+		var cssStyle = document.createElementNS('http://www.w3.org/2000/svg','style');
+		cssStyle.setAttribute('type','text/css');
+		
+		var font_size = Math.floor(td.settings.height/t.num_leaves);
+		font_size = Math.max(font_size, 1);
+		font_size = Math.min(font_size, 10);
+		
+		var style=document.createTextNode("text{font-size:" + font_size + "px;}");
+		cssStyle.appendChild(style);
+		
+		svg.appendChild(cssStyle);
+
+		// label leaves...
+		
+		
+		var n = new NodeIterator(t.root);
+		var q = n.Begin();
+		while (q != null)
+		{
+			if (q.IsLeaf())
+			{
+				drawText('viewport', q.xy, q.label);
+			}
+			q = n.Next();
+		}
+		
+				
+		// Scale to fit window
+		var bbox = svg.getBBox();
+		
+		var scale = 1.0;
+		
+		if (td.settings.height >bbox.height) {
+			scale = Math.min(1.0, td.settings.height/bbox.height);
+		}
+		
+		
+		// move drawing to centre of viewport
+		var viewport = document.getElementById('viewport');
+		viewport.setAttribute('transform', 'translate(0 10) scale(' + scale + ')');
+		
+		// pan
+		//$('svg').svgPan('viewport');
+	}
+	
+
+}	
+    
+    //------------
+    function find() {
+      // find stuff
+        var query = $('#query').val();
+        
+        // Clear stuff
+        $("#output").html('');
+        $("#results").html('');
+        $("#publications").html('');
+        
+        // Phylogeny
+		var svg = document.getElementById('svg');
+		while (svg.hasChildNodes()) 
+		{
+			svg.removeChild(svg.lastChild);
+		}        
+        
+        
+        // EOL
+		$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
+			function(data){
+				var eol = 0;
+				for (var i in data.results) {
+					var title = data.results[i].title.latinise();
+					// EOL names are not canonical (sigh)
+					title = title.replace(/\s+\(?\w+(-\w+)?, [0-9]{4}\)?$/, '');
+				
+					if (title == query) {
+						eol = data.results[i].id;
+					}
+				}
+				
+				if (eol != 0) {
+					eol_images(eol);
+					// images
+					
+				}
+				
+			 }
+				
+			);
+        
+       
+        // CrossRef
+		$.getJSON('http://search.crossref.org/dois?q=' + encodeURIComponent('"' + query + '"') + "&header=true",
+			function(data){
+				var html = '';
+				html += '<ol style="font-size:12px;">';
+				for (var i in data.items) {
+					html += '<li>' + data.items[i].fullCitation + ' <a href="' + data.items[i].doi + '" target="_new">' + data.items[i].doi + '</a>' + '</li>';
+				}
+				html += '</ol>';
+
+				$('#publications').html(html);	
+				$('#publication_details').html('Data from <a href="http://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
+			 }
+				
+			);
+		
+			
+		// OpenTree						
+		var o = {};
+		o.names =[];
+		o.names[0] = query;
+		o.names[1] = query;
+		
+		console.log(JSON.stringify(o));
+		
+		$.post('https://api.opentreeoflife.org/v2/tnrs/match_names', o, 
+			function(data){
+				if (data.results) {
+					var ott = 0;
+					for (var i in data.results) {
+						ott = data.results[i].matches[0]['ot:ottId'];
+					}
+					if (ott != 0) {
+						var q = {};
+						q.ott_id = ott;
+						
+						$('#phylogeny_details').html('Phylogeny from <a href="https://tree.opentreeoflife.org/opentree/argus/ottol@' + ott + '" target="_new">Open Tree of Life</a>');
+						
+						$.post('https://api.opentreeoflife.org/v2/tree_of_life/subtree', q, 
+							function(data){
+								showtree(data.newick);
+							 }
+				
+							);						
+					}
+					
+				}
+			});
+
+        
+        // GBIF map
+        	$('#map_details').html("");
+			$.getJSON('http://api.gbif.org/v1/occurrence/search?scientificName=' + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300&callback=?",
+				function(data){
+					if (data.results) {
+						var geojson = {};
+						geojson.type = "MultiPoint";
+						geojson.coordinates = [];
+						
+						for (var i in data.results) {
+							var pt = [data.results[i].decimalLongitude, data.results[i].decimalLatitude];
+							geojson.coordinates.push(pt);
+						}
+						
+						add_data(geojson);
+						
+						$('#map_details').html('Map data from <a href="http://gbif.org/species/search?q=' + query + '" target=_new">GBIF</a>');
+
+						
+					}
+				}
+			);        
+        
+
+       }
+	</script>    
+
+  </head>
+  <body>
+    <h1>iSpecies</h1>
+    	<p>A simple mashup of species information.</p>
+		<div style="width:100%;padding-bottom:20px;">
+			<p>Species</p>
+			<input type="text" id="query" value="" placeholder="Dermophis mexicanus">
+			<button id="find" onclick="find();">Find</button>
+			<div id="output" style="color:rgb(128,128,128);height:30px;">Status</div>
+		</div>
+		
+		<h2>Map</h2>
+		<span id="map_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="map" style="width:100%; height:300px;"></div>	
+		
+		<h2>Images</h2>
+		<span id="images_details" style="font-size:10px;color:rgb(192,192,192);">Images from EOL</span>
+		<div id="results"></div>
+		
+		<h2>References</h2>
+		<span id="publication_details" style="font-size:10px;color:rgb(192,192,192);">Data from CrossRef</span>
+		<div id="publications"></div>
+		
+		<h2>Phylogeny</h2>
+		<span id="phylogeny_details" style="font-size:10px;color:rgb(192,192,192);">Phylogeny from Open Tree of Life</span>
+		<div style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);">
+	<svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="500">
+		<g id="viewport">
+		</g>
+	</svg>
+	</div>
+		
+	<script>
+		// do we have a URL parameter?
+		var query = $.urlParam('q');
+		if (query) {
+		   query = decodeURIComponent(query);
+		   $('#query').val(query); 
+		   find();
+		}
+		
+				
+			create_map();
+	</script>
+  
+  </body>
+</html>
