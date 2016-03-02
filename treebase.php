@@ -148,9 +148,12 @@ switch ($type)
 			foreach ($nc as $n)
 			{
 				//echo $n->firstChild->nodeValue . '<br />';
-				if ($n->firstChild->nodeValue != '')
+				if (isset($n->firstChild->nodeValue))
 				{
-					$study->doi = $n->firstChild->nodeValue;
+					if ($n->firstChild->nodeValue != '')
+					{
+						$study->doi = $n->firstChild->nodeValue;
+					}
 				}
 			}
 	
