@@ -3,4 +3,4 @@ Simple mashup of species information. Intended to be a demonstration of the simp
 
 ## Pushing to Pagodabox
 
-    git push pagoda —all
+    git push pagoda --all
