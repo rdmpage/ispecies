@@ -281,8 +281,12 @@
 				g.setAttribute('id',viewport_id);
 				svg.appendChild(g);
 		
+				var height = 10 * t.num_leaves;
+				
+				svg.setAttribute('height',height + 20);
 		
-				td.Init(t, {svg_id: viewport_id, width:200, height:400, fontHeight:10, root_length:0.1} );
+				//td.Init(t, {svg_id: viewport_id, width:200, height:400, fontHeight:10, root_length:0.1} );
+				td.Init(t, {svg_id: viewport_id, width:200, height:height, fontHeight:10, root_length:0.1} );
 		
 				td.CalcCoordinates();
 				td.Draw();
@@ -299,7 +303,8 @@
 				cssStyle.appendChild(style);
 		
 				svg.appendChild(cssStyle);
-
+				
+				
 				// label leaves...
 		
 		
@@ -309,7 +314,11 @@
 				{
 					if (q.IsLeaf())
 					{
-						drawText(viewport_id, q.xy, q.label);
+						var label = q.label;
+						label = label.replace(/_/g, ' ');
+						var xy = q.xy;
+						xy['x'] += 5;
+						drawText(viewport_id, xy, label);
 					}
 					q = n.Next();
 				}
@@ -559,7 +568,7 @@
   </head>
   <body>
     <h1>iSpecies</h1>
-    	<p>A simple mashup of species information.</p>
+    	<p>A simple mashup of species information. Code on <a href="https://github.com/rdmpage/ispecies" target="_new">github</a>.</p>
 		<div style="width:100%;padding-bottom:20px;">
 			<p>Species</p>
 			<input type="text" id="query" value="" placeholder="Dermophis mexicanus">
@@ -586,7 +595,7 @@
 		<!-- trees -->
 		<div>
 			<div id="treebase_tree_list"></div>
-		<div style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);">
+		<div id="treeview" style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);overflow-y:scroll;">
 	<svg id="treebase_svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="500">
 		<g id="treebase_viewport">
 		</g>
