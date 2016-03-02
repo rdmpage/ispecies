@@ -491,6 +491,12 @@
 								feature.properties.popupContent += data.results[i].catalogNumber;
 							}
 							feature.properties.popupContent += '<br />';
+							
+							if (data.results[i].locality) {
+								feature.properties.popupContent += data.results[i].locality;
+							}
+							feature.properties.popupContent += '<br />';
+							
 							feature.properties.popupContent += '<a href="http://www.gbif.org/occurrence/' + data.results[i].key + '" target="_new">' + data.results[i].key + '</a>' + '<br />';
 							
 							//feature.properties.popupContent = data.results[i].key;
