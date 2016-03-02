@@ -23,6 +23,7 @@
 	
 	<!-- phylogeny -->
 	<script src="jquery-svgpan.js"></script>
+	<script src="nexus.js"></script>
 	<script src="treelib.js"></script>
 	
 	<script>
@@ -162,6 +163,33 @@
 
 		var ObjectLength =
 			Object.keys ? ObjectLength_Modern : ObjectLength_Legacy; 
+			
+        //--------------------------------------------------------------------------------
+		function treebase_trees(query) {
+			$.getJSON('treebase.php?q=' + query + "&type=trees&callback=?",
+				function(data){
+					var html = '';
+					
+					html += '<select id="select_tree" onchange="show_treebase_tree(this);">';
+					html += '<option value="" disabled selected>View a tree</option>';
+					
+					for (var i in data.items) {
+						html += '<option value="' + data.items[i].title + '">';
+						
+						title = data.items[i].title;
+						if (data.items[i].study) {
+							title += ' [Study ' + data.items[i].study + ']'; 
+						}
+						html += title;
+						html += '</option>';
+					}
+					html += '</select>';
+
+					$('#treebase_tree_list').html(html);	
+				 }
+				
+				);		
+		}			
 		
         //--------------------------------------------------------------------------------
 		function eol_images(eol) {
@@ -191,9 +219,31 @@
 			);
 		}
 	
+        //--------------------------------------------------------------------------------	
+		function show_treebase_tree(sel)
+		{
+			$.getJSON('treebase.php?q=' + sel.value + "&type=one_tree&callback=?",
+				function(data){
+					if (data.nexus) {
+						var nexus = parse_nexus(data.nexus);
+		
+						if (nexus.status != NexusError.ok) {
+						} else {
+							if (nexus.treesblock.trees.length == 0) {
+							} else {
+								var newick = nexus.treesblock.trees[0].newick;
+								showtree('treebase_svg', newick);
+							}
+						}
+						}
+					}
+				);
+			
+		}
+		
 	
         //--------------------------------------------------------------------------------	
-		function showtree(newick)
+		function showtree(element_id, newick)
 		{
 			var t = new Tree();
 			t.Parse(newick);
@@ -208,11 +258,18 @@
 				
 				t.ComputeWeights(t.root);
 		
-				var td = td = new RectangleTreeDrawer();
+				var td = null;
+				
+				if (t.has_edge_lengths) {
+					td = new PhylogramTreeDrawer();
+				} else {
+					td = new RectangleTreeDrawer();
+				}
 		
 				// clear existing diagram, if any
+				var viewport_id = element_id + '_viewport';
 		
-				var svg = document.getElementById('svg');
+				var svg = document.getElementById(element_id);
 				while (svg.hasChildNodes()) 
 				{
 					svg.removeChild(svg.lastChild);
@@ -221,11 +278,11 @@
 		
 		
 				var g = document.createElementNS('http://www.w3.org/2000/svg','g');
-				g.setAttribute('id','viewport');
+				g.setAttribute('id',viewport_id);
 				svg.appendChild(g);
 		
 		
-				td.Init(t, {svg_id: 'viewport', width:200, height:400, fontHeight:10, root_length:0.1} );
+				td.Init(t, {svg_id: viewport_id, width:200, height:400, fontHeight:10, root_length:0.1} );
 		
 				td.CalcCoordinates();
 				td.Draw();
@@ -252,7 +309,7 @@
 				{
 					if (q.IsLeaf())
 					{
-						drawText('viewport', q.xy, q.label);
+						drawText(viewport_id, q.xy, q.label);
 					}
 					q = n.Next();
 				}
@@ -269,7 +326,7 @@
 		
 		
 				// move drawing to centre of viewport
-				var viewport = document.getElementById('viewport');
+				var viewport = document.getElementById(viewport_id);
 				viewport.setAttribute('transform', 'translate(0 10) scale(' + scale + ')');
 		
 				// pan
@@ -286,12 +343,18 @@
 			var query = $('#query').val();
 		
 			// Clear stuff
-			$("#output").html('');
 			$("#results").html('');
 			$("#publications").html('');
+			$("#treebase").html('');
+			$('#treebase_tree_list').html('');	
 		
 			// Phylogeny
-			var svg = document.getElementById('svg');
+			var svg = document.getElementById('opentree_svg');
+			while (svg.hasChildNodes()) 
+			{
+				svg.removeChild(svg.lastChild);
+			}        
+			svg = document.getElementById('treebase_svg');
 			while (svg.hasChildNodes()) 
 			{
 				svg.removeChild(svg.lastChild);
@@ -376,7 +439,7 @@
 						
 							$.post('https://api.opentreeoflife.org/v2/tree_of_life/subtree', q, 
 								function(data){
-									showtree(data.newick);
+									showtree('opentree_svg', data.newick);
 								 }
 				
 								);						
@@ -441,7 +504,47 @@
 					
 					}
 				}
-			);        
+			);      
+			
+			// TreeBASE studies
+			$.getJSON('treebase.php?q=' + query + "&callback=?",
+				function(data){
+					var html = '';
+					html += '<ol style="font-size:12px;">';
+					for (var i in data.items) {
+						html += '<li>' + data.items[i].bibliographicCitation;
+						
+
+						if (data.items[i].doi) {
+							html += ' <a href="http://dx.doi.org/' + data.items[i].doi + '" target="_new">' + 'http://dx.doi.org/' + data.items[i].doi + '</a>';
+						}
+						
+						var id = data.items[i].id;
+						id = id.replace(/http:\/\/purl.org\/phylo\/treebase\/phylows\/study\/TB2:S/, '');
+						var url = 'https://treebase.org/treebase-web/search/study/summary.html?id=' + id;
+						html += ' <a href="' + url + '" target="_new">' + id + '</a>';
+						
+						
+						
+						html += '</li>';
+					}
+					html += '</ol>';
+
+					$('#treebase').html(html);	
+					//$('#publication_details').html('Data from <a href="http://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
+					
+					// do we have studies, if so, we have trees
+					if (data.items.length > 0)
+					{
+						$('#treebase_details').html('Data from <a href="http://treebase.org" target="_new">TreeBASE</a>');
+
+						treebase_trees(query);
+					}
+				 }
+				
+				);
+		
+			  
 		
 
 		}
@@ -455,7 +558,6 @@
 			<p>Species</p>
 			<input type="text" id="query" value="" placeholder="Dermophis mexicanus">
 			<button id="find" onclick="find();">Find</button>
-			<div id="output" style="color:rgb(128,128,128);height:30px;">Status</div>
 		</div>
 		
 		<h2>Map</h2>
@@ -471,10 +573,26 @@
 		<div id="publications"></div>
 		
 		<h2>Phylogeny</h2>
+		
+		<span id="treebase_details" style="font-size:10px;color:rgb(192,192,192);">Data from TreeBASE</span>
+		<!-- studies -->
+		<div id="treebase"></div>
+		<!-- trees -->
+		<div>
+			<div id="treebase_tree_list"></div>
+		<div style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);">
+	<svg id="treebase_svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="500">
+		<g id="treebase_viewport">
+		</g>
+	</svg>
+	</div>
+		<div>
+		
+		
 		<span id="phylogeny_details" style="font-size:10px;color:rgb(192,192,192);">Phylogeny from Open Tree of Life</span>
 		<div style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);">
-	<svg id="svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="500">
-		<g id="viewport">
+	<svg id="opentree_svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="500">
+		<g id="opentree_viewport">
 		</g>
 	</svg>
 	</div>
@@ -490,6 +608,7 @@
 		
 				
 			create_map();
+			
 	</script>
 	
 <script>
