@@ -34,7 +34,7 @@
 		function onEachFeature(feature, layer) {
 			// does this feature have a property named popupContent?
 			if (feature.properties && feature.properties.popupContent) {
-				console.log(feature.properties.popupContent);
+				//console.log(feature.properties.popupContent);
 				// content must be a string, see http://stackoverflow.com/a/22476287
 				layer.bindPopup(String(feature.properties.popupContent));
 			}
@@ -52,12 +52,17 @@
 			map.setView(new L.LatLng(0, 0),4);
 			map.addLayer(osm);		
 		}
-	
+		
 		//--------------------------------------------------------------------------------
-		function add_data(data) {
+		function clear_map() {
 			if (geojson) {
 				map.removeLayer(geojson);
 			}
+		}	
+	
+		//--------------------------------------------------------------------------------
+		function add_data(data) {
+			clear_map();
 		
 			geojson = L.geoJson(data, { 
 			style: function (feature) {
@@ -352,10 +357,12 @@
 			var query = $('#query').val();
 		
 			// Clear stuff
+			clear_map();
 			$("#results").html('');
 			$("#publications").html('');
 			$("#treebase").html('');
 			$('#treebase_tree_list').html('');	
+			$('#dbpedia').html('');
 		
 			// Phylogeny
 			var svg = document.getElementById('opentree_svg');
@@ -367,9 +374,88 @@
 			while (svg.hasChildNodes()) 
 			{
 				svg.removeChild(svg.lastChild);
-			}        
+			}  
+			
+			
+			//----------------------------------------------------------------------------
+			// DBPedia
+			$.getJSON('http://dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
+				function(data){
+					$('#summary_details').html('');
+					q = query.replace(" ", "_");
+					
+					// Base URI for querying results
+					var uri = "http://dbpedia.org/resource/" + q;
+					//console.log(uri);
+					
+					var html = '';
+					var text = [];
+					
+					//console.log(JSON.stringify(data));
+					
+					
+					if (data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"]) {
+						for(var i in data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"]) {
+							console.log(data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["lang"]);
+							console.log(data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["value"]);
+							text[data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["lang"]] 
+								= data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["value"];
+						}
+					}
+					
+					// Extract links
+					var links = [];
+					if (data[uri]["http://www.w3.org/2002/07/owl#sameAs"]) {
+						for(var i in data[uri]["http://www.w3.org/2002/07/owl#sameAs"]) {
+							links.push(data[uri]["http://www.w3.org/2002/07/owl#sameAs"][i]["value"]);
+						}
+					}
+					
+					if (ObjectLength(text)) {
+					
+						if (data[uri]["http://dbpedia.org/ontology/thumbnail"]) {
+							html += '<div style="float:right;"><img src="' + data[uri]["http://dbpedia.org/ontology/thumbnail"][0]["value"] + '" height="100"></div>';
+						}
+					
+						html += '<table>';
+						html += '<tbody style="font-size:12px;">';
+						for (var i in text) {
+							html += '<tr><td>' + i + '</td><td>' + text[i] + '</td></tr>';
+						}
+						html += '</tbody>';
+						html += '</table>';
+						
+						// Links to other data bases
+						html += '<div style="font-size:12px;">';
+						for (var i in links) {
+							// Wikidata
+							if (links[i].match(/http:\/\/wikidata.dbpedia.org\/resource\//)) {
+								var id = links[i].replace(/http:\/\/wikidata.dbpedia.org\/resource\//, '');
+								html += '<a href="https://www.wikidata.org/wiki/' + id + '" target="_new">' + id + ' (Wikidata)</a>' + '<br />';
+							}
+							// Freebase
+							if (links[i].match(/http:\/\/rdf.freebase.com\/ns\//)) {
+								var id = links[i].replace(/http:\/\/rdf.freebase.com\/ns\//, '');
+								id = id.replace('.', '/');
+								html += '<a href="http://g.co/kg/' + id + '" target="_new">' + id + ' (Google Knowledge Graph)</a>' + '<br />';
+							}
+							
+						}
+						html += '</div>';
+						
+						$('#summary_details').html('Data from <a href="http://dbpedia.org/page/' + q + '" target=_new">DBpedia</a>');
+
+					}
+					
+					//console.log(html);
+					$('#dbpedia').html(html);
+			
+				 }
+				
+				);
+      
 		
-		
+			//----------------------------------------------------------------------------
 			// EOL
 			$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
 				function(data){
@@ -395,6 +481,7 @@
 				);
 		
 	   
+			//----------------------------------------------------------------------------
 			// CrossRef
 			$.getJSON('http://search.crossref.org/dois?q=' + encodeURIComponent('"' + query + '"') + "&header=true",
 				function(data){
@@ -425,13 +512,14 @@
 				);
 		
 			
+			//----------------------------------------------------------------------------
 			// OpenTree						
 			var o = {};
 			o.names =[];
 			o.names[0] = query;
 			o.names[1] = query;
 		
-			console.log(JSON.stringify(o));
+			//console.log(JSON.stringify(o));
 		
 			$.post('https://api.opentreeoflife.org/v2/tnrs/match_names', o, 
 				function(data){
@@ -458,6 +546,7 @@
 				});
 
 		
+			//----------------------------------------------------------------------------
 			// GBIF map
 			$('#map_details').html("");
 			$.getJSON('http://api.gbif.org/v1/occurrence/search?scientificName=' + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300&callback=?",
@@ -521,6 +610,7 @@
 				}
 			);      
 			
+			//----------------------------------------------------------------------------
 			// TreeBASE studies
 			$.getJSON('treebase.php?q=' + query + "&callback=?",
 				function(data){
@@ -574,6 +664,10 @@
 			<input type="text" id="query" value="" placeholder="Dermophis mexicanus">
 			<button id="find" onclick="find();">Find</button>
 		</div>
+		
+		<h2>Summary</h2>
+		<span id="summary_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="dbpedia"></div>		
 		
 		<h2>Map</h2>
 		<span id="map_details" style="font-size:10px;color:rgb(192,192,192);"></span>
