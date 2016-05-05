@@ -88,6 +88,11 @@
 			},
 			onEachFeature: onEachFeature,
 			}).addTo(map);
+			
+			// Open popups on hover
+  			geojson.on('mouseover', function (e) {
+    			e.layer.openPopup();
+  			});
 		
 			if (data.type) {
 				if (data.type == 'Polygon') {
