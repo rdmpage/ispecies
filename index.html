@@ -378,6 +378,10 @@
 		function find() {
 		  // find stuff
 			var query = $('#query').val();
+			
+			// Change URL and title to match this query (makes for easier bookmarking)
+			history.pushState(null, null, '?q=' + query);
+			document.title = 'iSpecies - ' + query;
 		
 			// Clear stuff
 			clear_map();
