@@ -30,7 +30,7 @@ $obj = new stdclass;
 switch ($type)
 {
 	case 'one_tree':
-		$url = 'http://treebase.org/treebase-web/tree_for_phylowidget/' . $q;
+		$url = 'https://treebase.org/treebase-web/tree_for_phylowidget/' . $q;
 		$nexus = get($url);
 		
 		$obj->nexus = $nexus;
@@ -42,7 +42,7 @@ switch ($type)
 		$obj->items = array();
 		
 		// Search URL
-		$url = 'http://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=tree';
+		$url = 'https://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=tree';
 
 		$xml = get($url);
 
@@ -95,7 +95,7 @@ switch ($type)
 		$obj->items = array();
 		
 		// Search URL
-		$url = 'http://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=study';
+		$url = 'https://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=study';
 
 		$xml = get($url);
 
