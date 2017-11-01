@@ -221,7 +221,7 @@
 		
         //--------------------------------------------------------------------------------
 		function eol_images(eol) {
-			$.getJSON('https://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
+			$.getJSON('http://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
 				function(data){
 					var html = '';
 					for (var i in data.dataObjects) {
@@ -491,7 +491,7 @@
 		
 			//----------------------------------------------------------------------------
 			// EOL
-			$.getJSON('https://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
+			$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
 				function(data){
 					var eol = 0;
 					for (var i in data.results) {
