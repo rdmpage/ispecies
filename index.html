@@ -221,7 +221,7 @@
 		
         //--------------------------------------------------------------------------------
 		function eol_images(eol) {
-			$.getJSON('http://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
+			$.getJSON('https://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
 				function(data){
 					var html = '';
 					for (var i in data.dataObjects) {
@@ -413,7 +413,7 @@
 			
 			//----------------------------------------------------------------------------
 			// DBPedia
-			$.getJSON('http://dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
+			$.getJSON('https://dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
 				function(data){
 					$('#summary_details').html('');
 					q = query.replace(" ", "_");
@@ -491,7 +491,7 @@
 		
 			//----------------------------------------------------------------------------
 			// EOL
-			$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
+			$.getJSON('https://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
 				function(data){
 					var eol = 0;
 					for (var i in data.results) {
@@ -517,7 +517,7 @@
 	   
 			//----------------------------------------------------------------------------
 			// CrossRef
-			$.getJSON('http://search.crossref.org/dois?q=' + encodeURIComponent('"' + query + '"') + "&header=true",
+			$.getJSON('https://search.crossref.org/dois?q=' + encodeURIComponent('"' + query + '"') + "&header=true",
 				function(data){
 					var html = '';
 					html += '<ol style="font-size:12px;">';
@@ -540,7 +540,7 @@
 					html += '</ol>';
 
 					$('#publications').html(html);	
-					$('#publication_details').html('Data from <a href="http://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
+					$('#publication_details').html('Data from <a href="https://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
 				 }
 				
 				);
@@ -583,7 +583,7 @@
 			//----------------------------------------------------------------------------
 			// GBIF map
 			$('#map_details').html("");
-			$.getJSON('http://api.gbif.org/v1/occurrence/search?scientificName=' + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300&callback=?",
+			$.getJSON('https://api.gbif.org/v1/occurrence/search?scientificName=' + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300&callback=?",
 				function(data){
 					if (data.results) {
 						var geojson = {};
