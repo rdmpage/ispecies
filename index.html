@@ -413,7 +413,8 @@
 			
 			//----------------------------------------------------------------------------
 			// DBPedia
-			$.getJSON('//dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
+			//$.getJSON('http://dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
+			$.getJSON('dbpedia.php?q=' + query + '&callback=?',
 				function(data){
 					$('#summary_details').html('');
 					q = query.replace(" ", "_");
