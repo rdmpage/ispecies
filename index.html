@@ -246,6 +246,35 @@
 				
 			);
 		}
+		
+        //--------------------------------------------------------------------------------
+		function new_eol_images(query) {
+			$.getJSON('eol.php?q=' + encodeURIComponent(query)  + '&callback=?',
+				function(data){
+					var html = '';
+					for (var i in data.dataObjects) {
+						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
+							html += '<img style="padding:5px;" src="' + data.dataObjects[i].eolThumbnailURL + '" />';
+						}
+					}
+
+				/*
+					for (var i in data.dataObjects) {
+						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/Text") {
+							html += '<p style="font-size:10px;">' + data.dataObjects[i].description + '</p>';
+						}
+					}
+					*/
+				
+					$("#results").html(html);
+				
+					$('#images_details').html('Data from <a href="http://eol.org/pages/' + eol + '" target="_new">EOL</a>');
+				
+				 }
+				
+			);
+		}
+		
 	
         //--------------------------------------------------------------------------------	
 		function show_treebase_tree(sel)
@@ -492,6 +521,10 @@
 		
 			//----------------------------------------------------------------------------
 			// EOL
+			
+			new_eol_images(query);
+			
+			/*
 			$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
 				function(data){
 					var eol = 0;
@@ -514,7 +547,7 @@
 				 }
 				
 				);
-		
+			*/
 	   
 			//----------------------------------------------------------------------------
 			// CrossRef
