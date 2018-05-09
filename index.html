@@ -39,6 +39,9 @@
 		var map;
 		var geojson = null;
 		
+		var lifemap;
+		var lifemap_marker = null;
+		
 		// http://gis.stackexchange.com/a/116193
 		// http://jsfiddle.net/GFarkas/qzdr2w73/4/
 		var icon = new L.divIcon({className: 'mydivicon'});		
@@ -148,6 +151,26 @@
 				}
 			}		    					
 		}
+	</script>
+	
+	
+	<script>
+	
+			//--------------------------------------------------------------------------------
+		function create_lifemap() {
+			lifemap = new L.Map('lifemap');
+
+			// create the tile layer with correct attribution
+			var lifemapUrl='http://umr5558-treezoom3.univ-lyon1.fr/osm_tiles/{z}/{x}/{y}.png';
+			var lifemapAttrib='Visualisation by <a href="http://lifemap-otol.univ-lyon1.fr">Lifemap</a>';
+			var lifemapLayer = new L.TileLayer(lifemapUrl, {minZoom: 1, maxZoom: 30, attribution: lifemapAttrib});		
+
+			lifemap.setView(new L.LatLng(0, 0),4);
+			lifemap.addLayer(lifemapLayer);		
+		}
+
+	
+	
 	</script>
     
     <script>
@@ -401,6 +424,34 @@
 	
 
 		}	
+		
+		//--------------------------------------------------------------------------------
+		
+		function goto_taxon_lifemap (ott) {
+			$.getJSON('http://umr5558-treezoom3.univ-lyon1.fr:8983/solr/taxo/select?q=taxid:ott' + ott + '&wt=json&json.wrf=?',
+				function(data){
+					console.log(JSON.stringify(data, null, 2));
+					
+					if (data.response.numFound == 1) {
+						$('#lifemap_details').html('Visualisation from <a href="http://lifemap-otol.univ-lyon1.fr" target=_new">Lifemap</a>');
+
+						if (lifemap_marker) {
+							lifemap.removeLayer(lifemap_marker);
+						}
+					
+						lifemap_marker = L.marker(data.response.docs[0].coordinates,{}).addTo(lifemap);
+    					// set the view
+    					lifemap.setView(data.response.docs[0].coordinates, data.response.docs[0].zoom - 3);
+					}
+					
+					
+				}
+			);
+
+		
+		
+		}
+
     
         //--------------------------------------------------------------------------------
 		// core functionality, search multiple sources for information
@@ -599,6 +650,10 @@
 						if (ott != 0) {
 							var q = {};
 							q.ott_id = ott;
+							
+							// lifemap
+							goto_taxon_lifemap(ott);
+							
 						
 							$('#phylogeny_details').html('Phylogeny from <a href="https://tree.opentreeoflife.org/opentree/argus/ottol@' + ott + '" target="_new">Open Tree of Life</a>');
 						
@@ -612,6 +667,7 @@
 					
 					}
 				});
+
 
 		
 			//----------------------------------------------------------------------------
@@ -741,6 +797,10 @@
 		<span id="map_details" style="font-size:10px;color:rgb(192,192,192);"></span>
 		<div id="map" style="width:100%; height:300px;"></div>	
 		
+		<h2>Open Tree of Life</h2>
+		<span id="lifemap_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="lifemap" style="width:100%; height:300px;"></div>	
+		
 		<h2>Images</h2>
 		<span id="images_details" style="font-size:10px;color:rgb(192,192,192);">Images from EOL</span>
 		<div id="results"></div>
@@ -763,6 +823,12 @@
 		</g>
 	</svg>
 	</div>
+	
+	
+	
+	
+	
+	
 		<div>
 		
 		
@@ -773,6 +839,8 @@
 		</g>
 	</svg>
 	</div>
+	
+	
 		
 	<script>
 		// do we have a URL parameter?
@@ -785,6 +853,8 @@
 		
 				
 			create_map();
+			
+			create_lifemap();
 			
 	</script>
 	
