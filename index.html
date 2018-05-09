@@ -428,7 +428,7 @@
 		//--------------------------------------------------------------------------------
 		
 		function goto_taxon_lifemap (ott) {
-			$.getJSON('http://umr5558-treezoom3.univ-lyon1.fr:8983/solr/taxo/select?q=taxid:ott' + ott + '&wt=json&json.wrf=?',
+			$.getJSON('lifemap.php?ott=' + ott  + '&callback=?',
 				function(data){
 					console.log(JSON.stringify(data, null, 2));
 					
