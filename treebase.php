@@ -42,7 +42,7 @@ switch ($type)
 		$obj->items = array();
 		
 		// Search URL
-		$url = 'https://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=tree';
+		$url = 'http://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=tree';
 
 		$xml = get($url);
 
@@ -95,7 +95,7 @@ switch ($type)
 		$obj->items = array();
 		
 		// Search URL
-		$url = 'https://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=study';
+		$url = 'http://purl.org/phylo/treebase/phylows/taxon/find?query=tb.title.taxon+%3D+' . $q . '&format=rss1&recordSchema=study';
 
 		$xml = get($url);
 
