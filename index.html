@@ -657,7 +657,7 @@
 						
 							$('#phylogeny_details').html('Phylogeny from <a href="https://tree.opentreeoflife.org/opentree/argus/ottol@' + ott + '" target="_new">Open Tree of Life</a>');
 						
-							$.post('https://api.opentreeoflife.org/v2/tree_of_life/subtree', q, 
+							$.post('https://api.opentreeoflife.org/v3/tree_of_life/subtree', JSON.stringify(q), 
 								function(data){
 									showtree('opentree_svg', data.newick);
 								 }
