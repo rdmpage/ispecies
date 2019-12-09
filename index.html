@@ -620,7 +620,7 @@
 						fullCitation = fullCitation.replace(/<p>/g, '');
 						fullCitation = fullCitation.replace(/<p class="HeadingRunIn">/g, '');
 						fullCitation = fullCitation.replace(/<\/p>/g, '');
-						html += '<li>' + fullCitation + ' <a href="' + data.items[i].doi + '" target="_new">' + data.items[i].doi + '</a>' + '</li>';
+						html += '<li>' + fullCitation + ' <a href="https://doi.org/' + data.items[i].doi + '" target="_new">' + data.items[i].doi + '</a>' + '</li>';
 					}
 					html += '</ol>';
 
