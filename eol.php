@@ -18,9 +18,14 @@ if (isset($_GET['callback']))
 
 $eol = 0;
 
-$url = 'http://eol.org/api/search/1.0/' . urlencode($q) . ".json";
+$url = 'https://eol.org/api/search/1.0/' . urlencode($q) . ".json";
+$url = 'https://eol.org/api/search/1.0.json?q=' . urlencode($q);
+
+//echo $url . "\n";
 
 $json = get($url);
+
+//echo $json;
 
 if ($json != '')
 {
@@ -44,7 +49,7 @@ $json = '';
 
 if ($eol != 0)
 {
-	$url = 'http://eol.org/api/pages/1.0/' . $eol . ".json?details=1&images=10";
+	$url = 'https://eol.org/api/pages/1.0/' . $eol . ".json?details=1&images_per_page=10";
 
 	$json = get($url);
 }

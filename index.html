@@ -275,9 +275,9 @@
 			$.getJSON('eol.php?q=' + encodeURIComponent(query)  + '&callback=?',
 				function(data){
 					var html = '';
-					for (var i in data.dataObjects) {
-						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
-							html += '<img style="padding:5px;" src="' + data.dataObjects[i].eolThumbnailURL + '" />';
+					for (var i in data.taxonConcept.dataObjects) {
+						if (data.taxonConcept.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
+							html += '<img style="padding:5px;" src="' + data.taxonConcept.dataObjects[i].eolThumbnailURL + '" />';
 						}
 					}
 
@@ -640,12 +640,13 @@
 		
 			//console.log(JSON.stringify(o));
 		
-			$.post('https://api.opentreeoflife.org/v2/tnrs/match_names', o, 
+			//$.post('https://api.opentreeoflife.org/v2/tnrs/match_names', o, 
+			$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.opentreeoflife.org/v3/tnrs/match_names") + "&postdata=" + encodeURIComponent(JSON.stringify(o)),
 				function(data){
 					if (data.results) {
 						var ott = 0;
 						for (var i in data.results) {
-							ott = data.results[i].matches[0]['ot:ottId'];
+							ott = data.results[i].matches[0].taxon.ott_id;
 						}
 						if (ott != 0) {
 							var q = {};
@@ -657,7 +658,8 @@
 						
 							$('#phylogeny_details').html('Phylogeny from <a href="https://tree.opentreeoflife.org/opentree/argus/ottol@' + ott + '" target="_new">Open Tree of Life</a>');
 						
-							$.post('https://api.opentreeoflife.org/v3/tree_of_life/subtree', JSON.stringify(q), 
+							//$.post('https://api.opentreeoflife.org/v3/tree_of_life/subtree', JSON.stringify(q), 
+							$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.opentreeoflife.org/v3/tree_of_life/subtree") + "&postdata=" + encodeURIComponent(JSON.stringify(q)),
 								function(data){
 									showtree('opentree_svg', data.newick);
 								 }
@@ -673,7 +675,8 @@
 			//----------------------------------------------------------------------------
 			// GBIF map
 			$('#map_details').html("");
-			$.getJSON('https://api.gbif.org/v1/occurrence/search?scientificName=' + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300&callback=?",
+			
+			$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.gbif.org/v1/occurrence/search?scientificName=" + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300"),
 				function(data){
 					if (data.results) {
 						var geojson = {};
