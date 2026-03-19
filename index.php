@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  	<meta charset="utf-8" />
+  	<title>iSpecies</title>
+  	
+    <style type="text/css">
+      body { margin: 20px; font-family:sans-serif;}
+      input[type="text"] {
+    		font-size:14px;
+	  }
+	  button {font-size:14px;}
+	  
+	.mydivicon{
+		width: 12px
+		height: 12px;
+		border-radius: 10px;
+		background: #408000; 
+		border: 1px solid #fff;
+		opacity: 0.85
+	}	  
+    </style>
+    
+	<script src="latin.js" type="text/javascript"></script>    
+    
+    <!-- jquery -->
+    <script src="jquery-1.11.2.min.js" type="text/javascript"></script>
+    
+    <!-- leaflet -->
+	<link rel="stylesheet" href="leaflet-0.7.3/leaflet.css" />
+	<script src="leaflet-0.7.3/leaflet.js" type="text/javascript"></script>
+	
+	<!-- phylogeny -->
+	<script src="jquery-svgpan.js" type="text/javascript"></script>
+	<script src="nexus.js" type="text/javascript"></script>
+	<script src="treelib.js" type="text/javascript"></script>
+	
+	<script>
+		var map;
+		var geojson = null;
+		
+		var lifemap;
+		var lifemap_marker = null;
+		
+		// http://gis.stackexchange.com/a/116193
+		// http://jsfiddle.net/GFarkas/qzdr2w73/4/
+		var icon = new L.divIcon({className: 'mydivicon'});		
+
+		//--------------------------------------------------------------------------------
+		function onEachFeature(feature, layer) {
+			// does this feature have a property named popupContent?
+			if (feature.properties && feature.properties.popupContent) {
+				//console.log(feature.properties.popupContent);
+				// content must be a string, see http://stackoverflow.com/a/22476287
+				layer.bindPopup(String(feature.properties.popupContent));
+			}
+		}	
+			
+		//--------------------------------------------------------------------------------
+		function create_map() {
+			map = new L.Map('map');
+
+			// create the tile layer with correct attribution
+			var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+			var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+			var osm = new L.TileLayer(osmUrl, {minZoom: 1, maxZoom: 12, attribution: osmAttrib});		
+
+			map.setView(new L.LatLng(0, 0),4);
+			map.addLayer(osm);		
+		}
+		
+		//--------------------------------------------------------------------------------
+		function clear_map() {
+			if (geojson) {
+				map.removeLayer(geojson);
+			}
+		}	
+	
+		//--------------------------------------------------------------------------------
+		function add_data(data) {
+			clear_map();
+		
+			geojson = L.geoJson(data, { 
+
+			pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, {
+                    icon: icon});
+            },			
+			style: function (feature) {
+				return feature.properties && feature.properties.style;
+			},
+			onEachFeature: onEachFeature,
+			}).addTo(map);
+			
+			// Open popups on hover
+  			geojson.on('mouseover', function (e) {
+    			e.layer.openPopup();
+  			});
+		
+			if (data.type) {
+				if (data.type == 'Polygon') {
+					for (var i in data.coordinates) {
+					  minx = 180;
+					  miny = 90;
+					  maxx = -180;
+					  maxy = -90;
+				  
+					  for (var j in data.coordinates[i]) {
+						minx = Math.min(minx, data.coordinates[i][j][0]);
+						miny = Math.min(miny, data.coordinates[i][j][1]);
+						maxx = Math.max(maxx, data.coordinates[i][j][0]);
+						maxy = Math.max(maxy, data.coordinates[i][j][1]);
+					  }
+					}
+					
+					bounds = L.latLngBounds(L.latLng(miny,minx), L.latLng(maxy,maxx));
+					map.fitBounds(bounds);
+				}
+				if (data.type == 'MultiPoint') {
+					minx = 180;
+					miny = 90;
+					maxx = -180;
+					maxy = -90;				
+					for (var i in data.coordinates) {
+						minx = Math.min(minx, data.coordinates[i][0]);
+						miny = Math.min(miny, data.coordinates[i][1]);
+						maxx = Math.max(maxx, data.coordinates[i][0]);
+						maxy = Math.max(maxy, data.coordinates[i][1]);
+					}
+					
+					bounds = L.latLngBounds(L.latLng(miny,minx), L.latLng(maxy,maxx));
+					map.fitBounds(bounds);
+				}
+				if (data.type == 'FeatureCollection') {
+					minx = 180;
+					miny = 90;
+					maxx = -180;
+					maxy = -90;				
+					for (var i in data.features) {
+						//console.log(JSON.stringify(data.features[i]));
+					
+						minx = Math.min(minx, data.features[i].geometry.coordinates[0]);
+						miny = Math.min(miny, data.features[i].geometry.coordinates[1]);
+						maxx = Math.max(maxx, data.features[i].geometry.coordinates[0]);
+						maxy = Math.max(maxy, data.features[i].geometry.coordinates[1]);
+						
+					}
+					
+					bounds = L.latLngBounds(L.latLng(miny,minx), L.latLng(maxy,maxx));
+					map.fitBounds(bounds);
+				}
+			}		    					
+		}
+	</script>
+	
+	
+	<script>
+	
+			//--------------------------------------------------------------------------------
+		function create_lifemap() {
+			lifemap = new L.Map('lifemap');
+
+			// create the tile layer with correct attribution
+			var lifemapUrl='http://umr5558-treezoom3.univ-lyon1.fr/osm_tiles/{z}/{x}/{y}.png';
+			var lifemapAttrib='Visualisation by <a href="http://lifemap-otol.univ-lyon1.fr">Lifemap</a>';
+			var lifemapLayer = new L.TileLayer(lifemapUrl, {minZoom: 1, maxZoom: 30, attribution: lifemapAttrib});		
+
+			lifemap.setView(new L.LatLng(0, 0),4);
+			lifemap.addLayer(lifemapLayer);		
+		}
+
+	
+	
+	</script>
+    
+    <script>
+        //--------------------------------------------------------------------------------
+		// http://stackoverflow.com/a/11407464
+		$(document).keypress(function(event){
+
+			var keycode = (event.keyCode ? event.keyCode : event.which);
+			if(keycode == '13'){
+				$('#find').click();   
+			}
+
+		});    
+	
+		//http://stackoverflow.com/a/25359264
+		$.urlParam = function(name){
+			var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+			if (results==null){
+			   return null;
+			}
+			else{
+			   return results[1] || 0;
+			}
+		}    
+	
+        //--------------------------------------------------------------------------------
+		// http://stackoverflow.com/a/16976927
+		function ObjectLength_Modern( object ) {
+			return Object.keys(object).length;
+		}
+
+		function ObjectLength_Legacy( object ) {
+			var length = 0;
+			for( var key in object ) {
+				if( object.hasOwnProperty(key) ) {
+					++length;
+				}
+			}
+			return length;
+		}
+
+		var ObjectLength =
+			Object.keys ? ObjectLength_Modern : ObjectLength_Legacy; 
+			
+        //--------------------------------------------------------------------------------
+		function treebase_trees(query) {
+			$.getJSON('treebase.php?q=' + query + "&type=trees&callback=?",
+				function(data){
+					var html = '';
+					
+					html += '<select id="select_tree" onchange="show_treebase_tree(this);">';
+					html += '<option value="" disabled selected>View a tree</option>';
+					
+					for (var i in data.items) {
+						html += '<option value="' + data.items[i].title + '">';
+						
+						title = data.items[i].title;
+						if (data.items[i].study) {
+							title += ' [Study ' + data.items[i].study + ']'; 
+						}
+						html += title;
+						html += '</option>';
+					}
+					html += '</select>';
+
+					$('#treebase_tree_list').html(html);	
+				 }
+				
+				);		
+		}			
+		
+        //--------------------------------------------------------------------------------
+		function eol_images(eol) {
+			$.getJSON('http://eol.org/api/pages/1.0/' + eol  + ".json?details=1&images=10&callback=?",
+				function(data){
+					var html = '';
+					for (var i in data.dataObjects) {
+						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
+							html += '<img style="padding:5px;" src="' + data.dataObjects[i].eolThumbnailURL + '" />';
+						}
+					}
+
+				/*
+					for (var i in data.dataObjects) {
+						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/Text") {
+							html += '<p style="font-size:10px;">' + data.dataObjects[i].description + '</p>';
+						}
+					}
+					*/
+				
+					$("#results").html(html);
+				
+					$('#images_details').html('Data from <a href="http://eol.org/pages/' + eol + '" target="_new">EOL</a>');
+				
+				 }
+				
+			);
+		}
+		
+        //--------------------------------------------------------------------------------
+		function new_eol_images(query) {
+			$.getJSON('eol.php?q=' + encodeURIComponent(query)  + '&callback=?',
+				function(data){
+					var html = '';
+					for (var i in data.taxonConcept.dataObjects) {
+						if (data.taxonConcept.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/StillImage") {
+							html += '<img style="padding:5px;" src="' + data.taxonConcept.dataObjects[i].eolThumbnailURL + '" />';
+						}
+					}
+
+				/*
+					for (var i in data.dataObjects) {
+						if (data.dataObjects[i].dataType == "http://purl.org/dc/dcmitype/Text") {
+							html += '<p style="font-size:10px;">' + data.dataObjects[i].description + '</p>';
+						}
+					}
+					*/
+				
+					$("#results").html(html);
+				
+					$('#images_details').html('Data from <a href="http://eol.org/pages/' + eol + '" target="_new">EOL</a>');
+				
+				 }
+				
+			);
+		}
+		
+	
+        //--------------------------------------------------------------------------------	
+		function show_treebase_tree(sel)
+		{
+			$.getJSON('treebase.php?q=' + sel.value + "&type=one_tree&callback=?",
+				function(data){
+					if (data.nexus) {
+						var nexus = parse_nexus(data.nexus);
+		
+						if (nexus.status != NexusError.ok) {
+						} else {
+							if (nexus.treesblock.trees.length == 0) {
+							} else {
+								var newick = nexus.treesblock.trees[0].newick;
+								showtree('treebase_svg', newick);
+							}
+						}
+						}
+					}
+				);
+			
+		}
+		
+	
+        //--------------------------------------------------------------------------------	
+		function showtree(element_id, newick)
+		{
+			var t = new Tree();
+			t.Parse(newick);
+
+			if (t.error != 0)
+			{
+				//document.getElementById('message').innerHTML='Error parsing tree';
+			}
+			else
+			{
+				//document.getElementById('message').innerHTML='Parsed OK';
+				
+				t.ComputeWeights(t.root);
+		
+				var td = null;
+				
+				if (t.has_edge_lengths) {
+					td = new PhylogramTreeDrawer();
+				} else {
+					td = new RectangleTreeDrawer();
+				}
+		
+				// clear existing diagram, if any
+				var viewport_id = element_id + '_viewport';
+		
+				var svg = document.getElementById(element_id);
+				while (svg.hasChildNodes()) 
+				{
+					svg.removeChild(svg.lastChild);
+				}
+		
+		
+		
+				var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+				g.setAttribute('id',viewport_id);
+				svg.appendChild(g);
+		
+				var height = 10 * t.num_leaves;
+				
+				svg.setAttribute('height',height + 20);
+		
+				//td.Init(t, {svg_id: viewport_id, width:200, height:400, fontHeight:10, root_length:0.1} );
+				td.Init(t, {svg_id: viewport_id, width:200, height:height, fontHeight:10, root_length:0.1} );
+		
+				td.CalcCoordinates();
+				td.Draw();
+		
+				// font size
+				var cssStyle = document.createElementNS('http://www.w3.org/2000/svg','style');
+				cssStyle.setAttribute('type','text/css');
+		
+				var font_size = Math.floor(td.settings.height/t.num_leaves);
+				font_size = Math.max(font_size, 1);
+				font_size = Math.min(font_size, 10);
+		
+				var style=document.createTextNode("text{font-size:" + font_size + "px;}");
+				cssStyle.appendChild(style);
+		
+				svg.appendChild(cssStyle);
+				
+				
+				// label leaves...
+		
+		
+				var n = new NodeIterator(t.root);
+				var q = n.Begin();
+				while (q != null)
+				{
+					if (q.IsLeaf())
+					{
+						var label = q.label;
+						label = label.replace(/_/g, ' ');
+						var xy = q.xy;
+						xy['x'] += 5;
+						drawText(viewport_id, xy, label);
+					}
+					q = n.Next();
+				}
+		
+				
+				// Scale to fit window
+				var bbox = svg.getBBox();
+		
+				var scale = 1.0;
+		
+				if (td.settings.height >bbox.height) {
+					scale = Math.min(1.0, td.settings.height/bbox.height);
+				}
+		
+		
+				// move drawing to centre of viewport
+				var viewport = document.getElementById(viewport_id);
+				viewport.setAttribute('transform', 'translate(0 10) scale(' + scale + ')');
+		
+				// pan
+				//$('svg').svgPan('viewport');
+			}
+	
+
+		}	
+		
+		//--------------------------------------------------------------------------------
+		
+		function goto_taxon_lifemap (ott) {
+			$.getJSON('lifemap.php?ott=' + ott  + '&callback=?',
+				function(data){
+					console.log(JSON.stringify(data, null, 2));
+					
+					if (data.response.numFound == 1) {
+						$('#lifemap_details').html('Visualisation from <a href="http://lifemap-otol.univ-lyon1.fr" target=_new">Lifemap</a>');
+
+						if (lifemap_marker) {
+							lifemap.removeLayer(lifemap_marker);
+						}
+					
+						lifemap_marker = L.marker(data.response.docs[0].coordinates,{}).addTo(lifemap);
+    					// set the view
+    					lifemap.setView(data.response.docs[0].coordinates, data.response.docs[0].zoom - 3);
+					}
+					
+					
+				}
+			);
+
+		
+		
+		}
+
+    
+        //--------------------------------------------------------------------------------
+		// core functionality, search multiple sources for information
+		function find() {
+		  // find stuff
+			var query = $('#query').val();
+			
+			// Change URL and title to match this query (makes for easier bookmarking)
+			history.pushState(null, null, '?q=' + query);
+			document.title = 'iSpecies - ' + query;
+		
+			// Clear stuff
+			clear_map();
+			$("#results").html('');
+			$("#publications").html('');
+			
+			// TreeBASE
+			$("#treebase").html('');
+			$('#treebase_tree_list').html('');	
+			
+			// DBPedia
+			$('#dbpedia').html('');
+			
+			// EOL
+			$('#images_details').html('');			
+		
+			// Phylogeny
+			var svg = document.getElementById('opentree_svg');
+			while (svg.hasChildNodes()) 
+			{
+				svg.removeChild(svg.lastChild);
+			}        
+			svg = document.getElementById('treebase_svg');
+			while (svg.hasChildNodes()) 
+			{
+				svg.removeChild(svg.lastChild);
+			}  
+			
+			
+			//----------------------------------------------------------------------------
+			// DBPedia
+			//$.getJSON('http://dbpedia.org/data/' + query.replace(" ", "_") + ".json?callback=?",
+			$.getJSON('dbpedia.php?q=' + query + '&callback=?',
+				function(data){
+					$('#summary_details').html('');
+					q = query.replace(" ", "_");
+					
+					// Base URI for querying results
+					var uri = "http://dbpedia.org/resource/" + q;
+					//console.log(uri);
+					
+					var html = '';
+					var text = [];
+					
+					//console.log(JSON.stringify(data));
+					
+					
+					if (data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"]) {
+						for(var i in data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"]) {
+							console.log(data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["lang"]);
+							console.log(data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["value"]);
+							text[data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["lang"]] 
+								= data[uri]["http://www.w3.org/2000/01/rdf-schema#comment"][i]["value"];
+						}
+					}
+					
+					// Extract links
+					var links = [];
+					if (data[uri]["http://www.w3.org/2002/07/owl#sameAs"]) {
+						for(var i in data[uri]["http://www.w3.org/2002/07/owl#sameAs"]) {
+							links.push(data[uri]["http://www.w3.org/2002/07/owl#sameAs"][i]["value"]);
+						}
+					}
+					
+					if (ObjectLength(text)) {
+					
+						if (data[uri]["http://dbpedia.org/ontology/thumbnail"]) {
+							html += '<div style="float:right;"><img src="' + data[uri]["http://dbpedia.org/ontology/thumbnail"][0]["value"] + '" height="100"></div>';
+						}
+					
+						html += '<table>';
+						html += '<tbody style="font-size:12px;">';
+						for (var i in text) {
+							html += '<tr><td>' + i + '</td><td>' + text[i] + '</td></tr>';
+						}
+						html += '</tbody>';
+						html += '</table>';
+						
+						// Links to other data bases
+						html += '<div style="font-size:12px;">';
+						for (var i in links) {
+							// Wikidata
+							if (links[i].match(/http:\/\/wikidata.dbpedia.org\/resource\//)) {
+								var id = links[i].replace(/http:\/\/wikidata.dbpedia.org\/resource\//, '');
+								html += '<a href="https://www.wikidata.org/wiki/' + id + '" target="_new">' + id + ' (Wikidata)</a>' + '<br />';
+							}
+							// Freebase
+							if (links[i].match(/http:\/\/rdf.freebase.com\/ns\//)) {
+								var id = links[i].replace(/http:\/\/rdf.freebase.com\/ns\//, '');
+								id = id.replace('.', '/');
+								html += '<a href="http://g.co/kg/' + id + '" target="_new">' + id + ' (Google Knowledge Graph)</a>' + '<br />';
+							}
+							
+						}
+						html += '</div>';
+						
+						$('#summary_details').html('Data from <a href="http://dbpedia.org/page/' + q + '" target=_new">DBpedia</a>');
+
+					}
+					
+					//console.log(html);
+					$('#dbpedia').html(html);
+			
+				 }
+				
+				);
+      
+		
+			//----------------------------------------------------------------------------
+			// EOL
+			
+			new_eol_images(query);
+			
+			/*
+			$.getJSON('http://eol.org/api/search/1.0/' + encodeURIComponent(query) + ".json?callback=?",
+				function(data){
+					var eol = 0;
+					for (var i in data.results) {
+						var title = data.results[i].title.latinise();
+						// EOL names are not canonical (sigh)
+						title = title.replace(/\s+\(?\w+(-\w+)?, [0-9]{4}\)?$/, '');
+				
+						if (title == query) {
+							eol = data.results[i].id;
+						}
+					}
+				
+					if (eol != 0) {
+						eol_images(eol);
+						// images
+					
+					}
+				
+				 }
+				
+				);
+			*/
+	   
+			//----------------------------------------------------------------------------
+			// CrossRef
+			$.getJSON('https://search.crossref.org/dois?q=' + encodeURIComponent('"' + query + '"') + "&header=true",
+				function(data){
+					var html = '';
+					html += '<ol style="font-size:12px;">';
+					for (var i in data.items) {
+						// Clean HTML markup that is in CrossRef results (e.g., from Phylotaxa)
+						fullCitation = data.items[i].fullCitation;
+						fullCitation = fullCitation.replace(/&lt;/g, '<');
+						fullCitation = fullCitation.replace(/&gt;/g, '>');
+	
+						fullCitation = fullCitation.replace(/&quot;/g, '"');
+					
+						fullCitation = fullCitation.replace(/<strong>/g, '');
+						fullCitation = fullCitation.replace(/<\/strong>/g, '');
+					
+						fullCitation = fullCitation.replace(/<p>/g, '');
+						fullCitation = fullCitation.replace(/<p class="HeadingRunIn">/g, '');
+						fullCitation = fullCitation.replace(/<\/p>/g, '');
+						html += '<li>' + fullCitation + ' <a href="https://doi.org/' + data.items[i].doi + '" target="_new">' + data.items[i].doi + '</a>' + '</li>';
+					}
+					html += '</ol>';
+
+					$('#publications').html(html);	
+					$('#publication_details').html('Data from <a href="https://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
+				 }
+				
+				);
+		
+			
+			//----------------------------------------------------------------------------
+			// OpenTree						
+			var o = {};
+			o.names =[];
+			o.names[0] = query;
+			o.names[1] = query;
+		
+			//console.log(JSON.stringify(o));
+		
+			//$.post('https://api.opentreeoflife.org/v2/tnrs/match_names', o, 
+			$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.opentreeoflife.org/v3/tnrs/match_names") + "&postdata=" + encodeURIComponent(JSON.stringify(o)),
+				function(data){
+					if (data.results) {
+						var ott = 0;
+						for (var i in data.results) {
+							ott = data.results[i].matches[0].taxon.ott_id;
+						}
+						if (ott != 0) {
+							var q = {};
+							q.ott_id = ott;
+							
+							// lifemap
+							//goto_taxon_lifemap(ott);
+							
+						
+							$('#phylogeny_details').html('Phylogeny from <a href="https://tree.opentreeoflife.org/opentree/argus/ottol@' + ott + '" target="_new">Open Tree of Life</a>');
+						
+							//$.post('https://api.opentreeoflife.org/v3/tree_of_life/subtree', JSON.stringify(q), 
+							$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.opentreeoflife.org/v3/tree_of_life/subtree") + "&postdata=" + encodeURIComponent(JSON.stringify(q)),
+								function(data){
+									showtree('opentree_svg', data.newick);
+								 }
+				
+								);						
+						}
+					
+					}
+				});
+
+
+		
+			//----------------------------------------------------------------------------
+			// GBIF map
+			$('#map_details').html("");
+			
+			$.getJSON("proxy.php?url=" + encodeURIComponent("https://api.gbif.org/v1/occurrence/search?scientificName=" + query + "&hasCoordinate=true&hasGeospatialIssue=false&limit=300"),
+				function(data){
+					if (data.results) {
+						var geojson = {};
+						
+						/*
+						geojson.type = "MultiPoint";
+						geojson.coordinates = [];
+					
+						for (var i in data.results) {
+							var pt = [data.results[i].decimalLongitude, data.results[i].decimalLatitude];
+							geojson.coordinates.push(pt);
+						}
+						*/
+						
+						geojson.type = "FeatureCollection";
+						geojson.features = [];
+						for (var i in data.results) {
+							var feature = {};
+							feature.type = "Feature";
+							feature.geometry = {};
+							feature.geometry.type = "Point";
+							feature.geometry.coordinates = [data.results[i].decimalLongitude, data.results[i].decimalLatitude];
+							
+							feature.properties = {};
+							
+							// Content for the popup							
+							feature.properties.name = data.results[i].key;
+							
+							feature.properties.popupContent = '';
+							if (data.results[i].scientificName) {
+								feature.properties.popupContent = data.results[i].scientificName + '<br />';
+							}
+							if (data.results[i].institutionCode) {
+								feature.properties.popupContent += data.results[i].institutionCode + ' ';
+							}
+							if (data.results[i].catalogNumber) {
+								feature.properties.popupContent += data.results[i].catalogNumber;
+							}
+							feature.properties.popupContent += '<br />';
+							
+							if (data.results[i].locality) {
+								feature.properties.popupContent += data.results[i].locality;
+							}
+							feature.properties.popupContent += '<br />';
+							
+							feature.properties.popupContent += '<a href="http://www.gbif.org/occurrence/' + data.results[i].key + '" target="_new">' + data.results[i].key + '</a>' + '<br />';
+							
+							//feature.properties.popupContent = data.results[i].key;
+														
+							geojson.features.push(feature);							
+						}
+						add_data(geojson);
+					
+						$('#map_details').html('Map data from <a href="http://gbif.org/species/search?q=' + query + '" target=_new">GBIF</a>');
+
+					
+					}
+				}
+			);      
+			
+			//----------------------------------------------------------------------------
+			// TreeBASE studies
+			$.getJSON('treebase.php?q=' + query + "&callback=?",
+				function(data){
+					var html = '';
+					html += '<ol style="font-size:12px;">';
+					for (var i in data.items) {
+						html += '<li>' + data.items[i].bibliographicCitation;
+						
+
+						if (data.items[i].doi) {
+							html += ' <a href="http://dx.doi.org/' + data.items[i].doi + '" target="_new">' + 'http://dx.doi.org/' + data.items[i].doi + '</a>';
+						}
+						
+						var id = data.items[i].id;
+						id = id.replace(/http:\/\/purl.org\/phylo\/treebase\/phylows\/study\/TB2:S/, '');
+						var url = 'https://treebase.org/treebase-web/search/study/summary.html?id=' + id;
+						html += ' <a href="' + url + '" target="_new">' + id + '</a>';
+						
+						
+						
+						html += '</li>';
+					}
+					html += '</ol>';
+
+					$('#treebase').html(html);	
+					//$('#publication_details').html('Data from <a href="http://search.crossref.org/?q=' + query + '" target="_new">CrossRef</a>');		
+					
+					// do we have studies, if so, we have trees
+					if (data.items.length > 0)
+					{
+						$('#treebase_details').html('Data from <a href="http://treebase.org" target="_new">TreeBASE</a>');
+
+						treebase_trees(query);
+					}
+				 }
+				
+				);
+		
+			  
+		
+
+		}
+	</script>    
+
+  </head>
+  <body>
+    <h1>iSpecies</h1>
+    	<p>A simple mashup of species information. Code on <a href="https://github.com/rdmpage/ispecies" target="_new">github</a>.</p>
+		<div style="width:100%;padding-bottom:20px;">
+			<p>Species</p>
+			<input type="text" id="query" value="" placeholder="Dermophis mexicanus">
+			<button id="find" onclick="find();">Find</button>
+		</div>
+		
+		<h2>Summary</h2>
+		<span id="summary_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="dbpedia"></div>		
+		
+		<h2>Map</h2>
+		<span id="map_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="map" style="width:100%; height:300px;"></div>	
+		
+		<!--
+		<h2>Open Tree of Life</h2>
+		<span id="lifemap_details" style="font-size:10px;color:rgb(192,192,192);"></span>
+		<div id="lifemap" style="width:100%; height:300px;"></div>	
+		-->
+		
+		<h2>Images</h2>
+		<span id="images_details" style="font-size:10px;color:rgb(192,192,192);">Images from EOL</span>
+		<div id="results"></div>
+		
+		<h2>References</h2>
+		<span id="publication_details" style="font-size:10px;color:rgb(192,192,192);">Data from CrossRef</span>
+		<div id="publications"></div>
+		
+		<h2>Phylogeny</h2>
+		
+		<span id="treebase_details" style="font-size:10px;color:rgb(192,192,192);">Data from TreeBASE</span>
+		<!-- studies -->
+		<div id="treebase"></div>
+		<!-- trees -->
+		<div>
+			<div id="treebase_tree_list"></div>
+		<div id="treeview" style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);overflow-y:scroll;">
+	<svg id="treebase_svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="480">
+		<g id="treebase_viewport">
+		</g>
+	</svg>
+	</div>
+	
+	
+	
+	
+	
+	
+		<div>
+		
+		
+		<span id="phylogeny_details" style="font-size:10px;color:rgb(192,192,192);">Phylogeny from Open Tree of Life</span>
+		<div style="width:500px;height:420px;background-color:white;border:1px solid rgb(228,228,228);overflow-y:scroll;">
+	<svg id="opentree_svg" xmlns="http://www.w3.org/2000/svg" version="1.1" height="500" width="480">
+		<g id="opentree_viewport">
+		</g>
+	</svg>
+	</div>
+	
+	
+		
+	<script>
+		// do we have a URL parameter?
+		var query = $.urlParam('q');
+		if (query) {
+		   query = decodeURIComponent(query);
+		   $('#query').val(query); 
+		   find();
+		}
+		
+				
+			create_map();
+			
+			create_lifemap();
+			
+	</script>
+	
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-4542557-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+  
+  </body>
+</html>
